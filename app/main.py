@@ -236,3 +236,7 @@ async def query_rag_stream(request: QueryRequest):
             "Content-Type": "text/event-stream",
         }
     )
+
+@app.get("/api/health")
+async def api_health_check():
+    return {"status": "healthy"}
