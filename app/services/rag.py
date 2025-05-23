@@ -104,64 +104,20 @@ class RagPipeline:
         try:
             for chunk in streaming_llm.stream(prompt):
                 if hasattr(chunk, 'content') and chunk.content:
-                    yield chunk.content
+                    # <think> 태그 필터링
+                    filtered_content = self._filter_think_tags(chunk.content)
+                    if filtered_content:  # 빈 문자열이 아닐 때만 전송
+                        yield filtered_content
         except Exception as e:
             logger.error(f"스트리밍 응답 생성 오류: {str(e)}")
             yield f"응답 생성 중 오류가 발생했습니다: {str(e)}"
-
-
-
-    def invoke(self, query):
-        """RAG 파이프라인 실행"""
-        logger.info(f"RAG 파이프라인 실행: {query[:30]}...")
-        
-        # 1. 관련 문서 검색
-        docs = self._get_combined_retriever(query)
-        logger.info(f"총 {len(docs)}개 문서 검색됨")
-        
-        if not docs:
-            return "관련 문서를 찾을 수 없습니다."
-        
-        # 2. 문서 컨텍스트 포맷팅
-        context = format_docs(docs)
-        
-        # 3. 프롬프트 구성
-        system_template = """당신은 한국 법률 전문 AI 어시스턴트입니다. 
-다음 법률 문서 컨텍스트를 참고하여 사용자의 법률 관련 질문에 정확하고 도움이 되는 답변을 제공하세요.
-컨텍스트에 관련 정보가 없는 경우, "제가 가진 정보로는 답변드리기 어렵습니다"라고 정직하게 답변하세요.
-
-컨텍스트:
-{context}
-
-사용자 질문: {question}
-
-답변 작성 지침:
-1. 법률 용어는 정확하게 사용하세요.
-2. 관련 법조항이 있다면 명시하세요.
-3. 복잡한 개념은 쉽게 풀어서 설명하세요.
-4. 확실하지 않은 내용에 대해서는 단정적으로 답변하지 마세요.
-5. 법률 조언이 아닌 정보 제공 차원의 답변임을 명시하세요.
-"""
-        
-        prompt = system_template.format(context=context, question=query)
-         
-        # 4. 스트리밍 LLM 호출
-        from app.services.llm import get_streaming_llm
-        streaming_llm = get_streaming_llm()
-        
-        if streaming_llm is None:
-            yield "LLM 서비스를 사용할 수 없습니다."
-            return
-        
-        # 5. 스트리밍 응답 생성
-        try:
-            for chunk in streaming_llm.stream(prompt):
-                if hasattr(chunk, 'content') and chunk.content:
-                    yield chunk.content
-        except Exception as e:
-            logger.error(f"스트리밍 응답 생성 오류: {str(e)}")
-            yield f"응답 생성 중 오류가 발생했습니다: {str(e)}"
-
+ 
+def _filter_think_tags(self, content):
+    """<think> 태그 제거"""
+    import re
+    # <think>...</think> 태그와 내용 전체 제거
+    filtered = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
+    return filtered.strip()
         
 # RAG 파이프라인 인스턴스
 rag_pipeline = None
