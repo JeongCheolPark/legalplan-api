@@ -45,7 +45,7 @@ def create_commercial_law_vectorstore():
     logger.info(f"{len(documents)}개 상법 문서 로드 완료")
     
     # 소량 테스트 (처음 10개 문서만)
-    test_documents = documents[:10]
+    test_documents = documents
     logger.info(f"테스트용으로 {len(test_documents)}개 문서 사용")
     
     # 컬렉션명

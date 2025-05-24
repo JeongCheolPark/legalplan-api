@@ -203,7 +203,7 @@ async def query_rag_stream(request: QueryRequest):
     """RAG 스트리밍 질의응답 API"""
     logger.info(f"스트리밍 쿼리 요청: {request.query}")
     
-    async def generate_response():
+    def generate_response():  # async 제거
         try:
             # RAG 파이프라인 가져오기
             from app.services.rag import get_rag_pipeline
@@ -218,7 +218,7 @@ async def query_rag_stream(request: QueryRequest):
             # 스트리밍 응답 생성
             for chunk in rag.invoke_streaming(request.query):
                 # Server-Sent Events 형식으로 전송
-                yield f"data: {json.dumps({'chunk': chunk, 'status': 'generating'})}\n\n"
+                yield f"data: {json.dumps({'chunk': chunk, 'status': 'generating'}, ensure_ascii=False)}\n\n"
             
             # 완료 신호
             yield f"data: {json.dumps({'status': 'complete'})}\n\n"
@@ -229,11 +229,11 @@ async def query_rag_stream(request: QueryRequest):
     
     return StreamingResponse(
         generate_response(),
-        media_type="text/plain",
+        media_type="text/event-stream",  # 이 부분 수정!
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "Content-Type": "text/event-stream",
+            "X-Accel-Buffering": "no",  # nginx 버퍼링 비활성화
         }
     )
 
